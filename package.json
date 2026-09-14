@@ -1,0 +1,20 @@
+{
+  "name": "mbest-lms",
+  "version": "1.0.0",
+  "description": "MBEST - Learning Management System Local Development",
+  "main": "dev-server.js",
+  "scripts": {
+    "dev": "node dev-server.js",
+    "start": "node dev-server.js",
+    "serve": "node dev-server.js"
+  },
+  "keywords": [
+    "mbest",
+    "lms"
+  ],
+  "author": "MBEST Team",
+  "license": "ISC",
+  "dependencies": {
+    "puppeteer-core": "^25.10.0"
+  }
+}

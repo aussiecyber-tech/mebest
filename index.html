@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      (function() {
+        document.documentElement.classList.add('dark');
+        document.documentElement.classList.remove('light');
+        try { localStorage.setItem('lms-ui-theme', 'dark'); } catch(e) {}
+      })();
+    </script>
+    <link rel="icon" type="image/png" href="/M.B.E.S.T-logo.png" />
+    <title>MBEST - Learning Management System</title>
+    <meta name="description" content="Comprehensive learning management system with role-based access for students, tutors, parents, and administrators" />
+    <meta name="author" content="MBEST Team" />
+
+    <meta property="og:title" content="MBEST - Learning Management System" />
+    <meta property="og:description" content="Comprehensive learning management system with role-based access for students, tutors, parents, and administrators" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/M.B.E.S.T-logo.png" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@eduportal_lms" />
+    <meta name="twitter:image" content="/M.B.E.S.T-logo.png" />
+    <script type="module" crossorigin src="/assets/index-CqaxJume.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-BzSNX3QD.css">
+    <style>
+      /* View Programs button - custom #26d26e background */
+      a[href="/services"] button {
+        background-color: #26d26e !important;
+        border-color: #26d26e !important;
+        color: #ffffff !important;
+      }
+
+      a[href="/services"] button:hover {
+        background-color: #20bd62 !important;
+        border-color: #20bd62 !important;
+        color: #ffffff !important;
+      }
+    </style>
+  </head>
+
+  <body class="dark bg-background text-foreground">
+    <div id="root"></div>
+  </body>
+</html>
