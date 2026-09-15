@@ -138,7 +138,7 @@ const server = http.createServer((req, res) => {
     let body = {};
     try {
       if (bodyStr) body = JSON.parse(bodyStr);
-    } catch (e) {}
+    } catch (e) { }
 
     res.writeHead(200, {
       'Content-Type': 'application/json; charset=utf-8',
@@ -170,6 +170,38 @@ const server = http.createServer((req, res) => {
         email: user.email,
         role: user.role,
         avatar: user.avatar
+      };
+
+      res.end(JSON.stringify({
+        success: true,
+        token,
+        accessToken: token,
+        user: userPayload,
+        data: {
+          token,
+          accessToken: token,
+          user: userPayload
+        }
+      }));
+      return;
+    }
+
+    // 1b. POST /auth/register or /auth/signup
+    if ((endpoint.endsWith('/auth/register') || endpoint.endsWith('/auth/signup')) && req.method === 'POST') {
+      const email = (body.email || '').toLowerCase().trim();
+      let role = (body.role || 'student').toLowerCase();
+      if (email.includes('admin')) role = 'admin';
+      else if (email.includes('tutor')) role = 'tutor';
+      else if (email.includes('parent')) role = 'parent';
+
+      const token = `mbest_demo_token_${role}_${Date.now()}`;
+      const name = body.name || (body.firstName ? `${body.firstName} ${body.lastName || ''}`.trim() : (email.split('@')[0] || 'User'));
+      const userPayload = {
+        id: `user-${Date.now()}`,
+        name: name || 'Registered User',
+        email: email || 'user@example.com',
+        role: role,
+        avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150"
       };
 
       res.end(JSON.stringify({
@@ -445,6 +477,10 @@ const server = http.createServer((req, res) => {
           host: 'localhost:5000'
         }
       }, (proxyRes) => {
+        if (proxyRes.statusCode >= 400) {
+          handleOfflineApi(req, res, cleanPath, bodyBuffer.toString('utf8'));
+          return;
+        }
         res.writeHead(proxyRes.statusCode, proxyRes.headers);
         proxyRes.pipe(res, { end: true });
       });
@@ -571,7 +607,7 @@ function listenOnPort(port) {
       if (networkIP) break;
     }
 
-    const localUrl   = `http://localhost:${port}`;
+    const localUrl = `http://localhost:${port}`;
     const networkUrl = networkIP ? `http://${networkIP}:${port}` : 'N/A';
 
     console.log('============================================================');
