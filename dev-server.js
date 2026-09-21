@@ -86,6 +86,12 @@ function setupWatcher() {
 }
 
 const server = http.createServer((req, res) => {
+  if (req.url === '/health') {
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify({ status: 'ok' }));
+    return;
+  }
+
   if (req.url === '/__livereload') {
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
