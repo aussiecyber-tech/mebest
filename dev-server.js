@@ -1,4 +1,5 @@
 const http = require('http');
+const https = require('https');
 const fs = require('fs');
 const path = require('path');
 
@@ -7,6 +8,8 @@ const portIndex = args.indexOf('--port') !== -1 ? args.indexOf('--port') : args.
 const argPort = portIndex !== -1 && args[portIndex + 1] ? parseInt(args[portIndex + 1], 10) : null;
 let PORT = argPort || (process.env.PORT ? parseInt(process.env.PORT, 10) : 3000);
 const ROOT_DIR = path.resolve(__dirname);
+const BACKEND_URL = new URL(process.env.BACKEND_URL || 'http://localhost:5000');
+const backendRequest = BACKEND_URL.protocol === 'https:' ? https.request : http.request;
 
 // MIME types dictionary
 const MIME_TYPES = {
@@ -466,33 +469,36 @@ const server = http.createServer((req, res) => {
     }));
   }
 
-  // Proxy API traffic directly to the Express backend (Port 5000) with fallback handler
+  // Proxy API traffic to the configured Express backend.
   if (req.url.startsWith('/api') || req.url.startsWith('/mbest/public/api')) {
     const cleanPath = req.url.replace('/mbest/public', '');
     const bodyChunks = [];
     req.on('data', chunk => bodyChunks.push(chunk));
     req.on('end', () => {
       const bodyBuffer = Buffer.concat(bodyChunks);
-      const proxyReq = http.request({
-        hostname: 'localhost',
-        port: 5000,
-        path: cleanPath,
+      const backendBasePath = BACKEND_URL.pathname.replace(/\/$/, '');
+      const proxyReq = backendRequest({
+        hostname: BACKEND_URL.hostname,
+        port: BACKEND_URL.port || (BACKEND_URL.protocol === 'https:' ? 443 : 80),
+        path: `${backendBasePath}${cleanPath}`,
         method: req.method,
         headers: {
           ...req.headers,
-          host: 'localhost:5000'
+          host: BACKEND_URL.host
         }
       }, (proxyRes) => {
-        if (proxyRes.statusCode >= 400) {
-          handleOfflineApi(req, res, cleanPath, bodyBuffer.toString('utf8'));
-          return;
-        }
         res.writeHead(proxyRes.statusCode, proxyRes.headers);
         proxyRes.pipe(res, { end: true });
       });
 
       proxyReq.on('error', (err) => {
-        // Express backend is offline -> fulfill smoothly via local fallback handler
+        if (process.env.BACKEND_URL) {
+          res.writeHead(502, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, message: 'Backend service is unavailable' }));
+          return;
+        }
+
+        // Keep the local demo usable when no backend URL is configured.
         handleOfflineApi(req, res, cleanPath, bodyBuffer.toString('utf8'));
       });
 
