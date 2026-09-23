@@ -8,7 +8,7 @@ const portIndex = args.indexOf('--port') !== -1 ? args.indexOf('--port') : args.
 const argPort = portIndex !== -1 && args[portIndex + 1] ? parseInt(args[portIndex + 1], 10) : null;
 let PORT = argPort || (process.env.PORT ? parseInt(process.env.PORT, 10) : 3000);
 const ROOT_DIR = path.resolve(__dirname);
-const BACKEND_URL = new URL(process.env.BACKEND_URL || 'http://localhost:5000');
+const BACKEND_URL = new URL(process.env.BACKEND_URL || 'https://mbest-backend.up.railway.app');
 const backendRequest = BACKEND_URL.protocol === 'https:' ? https.request : http.request;
 
 // MIME types dictionary
