@@ -5,7 +5,7 @@
   "main": "dev-server.js",
   "scripts": {
     "dev": "node dev-server.js",
-    "start": "node dev-server.js",
+    "start": "node dev-server.js --port 3000",
     "serve": "node dev-server.js"
   },
   "keywords": [
