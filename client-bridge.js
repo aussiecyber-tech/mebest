@@ -1298,14 +1298,3 @@
   }
 
 })();
-document.addEventListener('DOMContentLoaded', () => setTimeout(enhanceSignupForm, 400));
-  } else {
-  setTimeout(enhanceSignupForm, 400);
-}
-
-const signupObserver = new MutationObserver(() => setTimeout(enhanceSignupForm, 150));
-if (document.documentElement) {
-  signupObserver.observe(document.documentElement, { childList: true, subtree: true });
-}
-
-}) ();

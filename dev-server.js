@@ -8,8 +8,9 @@ const portIndex = args.indexOf('--port') !== -1 ? args.indexOf('--port') : args.
 const argPort = portIndex !== -1 && args[portIndex + 1] ? parseInt(args[portIndex + 1], 10) : null;
 let PORT = argPort || (process.env.PORT ? parseInt(process.env.PORT, 10) : 3000);
 const ROOT_DIR = path.resolve(__dirname);
-const BACKEND_URL = new URL(process.env.BACKEND_URL || 'https://mbest-backend.up.railway.app');
-const backendRequest = BACKEND_URL.protocol === 'https:' ? https.request : http.request;
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:5000';
+const ENABLE_MOCK_API = process.env.ENABLE_MOCK_API === 'true';
+const ENABLE_DEV_BRIDGE = process.env.ENABLE_DEV_BRIDGE === 'true';
 
 // MIME types dictionary
 const MIME_TYPES = {
@@ -34,6 +35,7 @@ const clients = new Set();
 
 // Dynamically load client-bridge.js for Live Reload, Mock API, and Quick Login UI
 function getInjectedDevScript() {
+  if (!ENABLE_DEV_BRIDGE) return '';
   const bridgePath = path.join(ROOT_DIR, 'client-bridge.js');
   let scriptContent = '';
   try {
@@ -91,7 +93,7 @@ function setupWatcher() {
 const server = http.createServer((req, res) => {
   if (req.url === '/health') {
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-    res.end(JSON.stringify({ status: 'ok' }));
+    res.end(JSON.stringify({ status: 'ok', backendConfigured: Boolean(BACKEND_URL) }));
     return;
   }
 
@@ -469,22 +471,36 @@ const server = http.createServer((req, res) => {
     }));
   }
 
-  // Proxy API traffic to the configured Express backend.
+  // Proxy API traffic to the configured backend. On Railway, BACKEND_URL should
+  // reference the backend service's private domain and port.
   if (req.url.startsWith('/api') || req.url.startsWith('/mbest/public/api')) {
     const cleanPath = req.url.replace('/mbest/public', '');
     const bodyChunks = [];
     req.on('data', chunk => bodyChunks.push(chunk));
     req.on('end', () => {
       const bodyBuffer = Buffer.concat(bodyChunks);
-      const backendBasePath = BACKEND_URL.pathname.replace(/\/$/, '');
-      const proxyReq = backendRequest({
-        hostname: BACKEND_URL.hostname,
-        port: BACKEND_URL.port || (BACKEND_URL.protocol === 'https:' ? 443 : 80),
-        path: `${backendBasePath}${cleanPath}`,
+      let backend;
+      try {
+        backend = new URL(BACKEND_URL);
+      } catch (error) {
+        res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ success: false, message: 'Invalid BACKEND_URL configuration' }));
+        return;
+      }
+
+      const transport = backend.protocol === 'https:' ? https : http;
+      const backendPath = `${backend.pathname.replace(/\/$/, '')}${cleanPath}`;
+      const proxyReq = transport.request({
+        protocol: backend.protocol,
+        hostname: backend.hostname,
+        port: backend.port || (backend.protocol === 'https:' ? 443 : 80),
+        path: backendPath,
         method: req.method,
         headers: {
           ...req.headers,
-          host: BACKEND_URL.host
+          host: backend.host,
+          'x-forwarded-host': req.headers.host || '',
+          'x-forwarded-proto': req.headers['x-forwarded-proto'] || 'http'
         }
       }, (proxyRes) => {
         res.writeHead(proxyRes.statusCode, proxyRes.headers);
@@ -492,14 +508,19 @@ const server = http.createServer((req, res) => {
       });
 
       proxyReq.on('error', (err) => {
-        if (process.env.BACKEND_URL) {
-          res.writeHead(502, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: false, message: 'Backend service is unavailable' }));
+        console.error(`[API Proxy] ${req.method} ${cleanPath} -> ${backend.origin} failed:`, err.message);
+        if (ENABLE_MOCK_API) {
+          handleOfflineApi(req, res, cleanPath, bodyBuffer.toString('utf8'));
           return;
         }
-
-        // Keep the local demo usable when no backend URL is configured.
-        handleOfflineApi(req, res, cleanPath, bodyBuffer.toString('utf8'));
+        if (!res.headersSent) {
+          res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8' });
+        }
+        res.end(JSON.stringify({
+          success: false,
+          message: 'Backend service is unavailable',
+          detail: process.env.NODE_ENV === 'production' ? undefined : err.message
+        }));
       });
 
       if (bodyBuffer.length > 0) {
