@@ -8,7 +8,8 @@ const portIndex = args.indexOf('--port') !== -1 ? args.indexOf('--port') : args.
 const argPort = portIndex !== -1 && args[portIndex + 1] ? parseInt(args[portIndex + 1], 10) : null;
 let PORT = argPort || (process.env.PORT ? parseInt(process.env.PORT, 10) : 3000);
 const ROOT_DIR = path.resolve(__dirname);
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:5000';
+const DEFAULT_BACKEND_URL = 'https://mbest-backend.up.railway.app';
+const BACKEND_URL = process.env.BACKEND_URL || DEFAULT_BACKEND_URL;
 const ENABLE_MOCK_API = process.env.ENABLE_MOCK_API === 'true';
 const ENABLE_DEV_BRIDGE = process.env.ENABLE_DEV_BRIDGE === 'true';
 
@@ -92,8 +93,12 @@ function setupWatcher() {
 
 const server = http.createServer((req, res) => {
   if (req.url === '/health') {
+    let backendHost = 'invalid';
+    try {
+      backendHost = new URL(BACKEND_URL).host;
+    } catch (error) { }
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-    res.end(JSON.stringify({ status: 'ok', backendConfigured: Boolean(BACKEND_URL) }));
+    res.end(JSON.stringify({ status: 'ok', backendConfigured: Boolean(BACKEND_URL), backendHost }));
     return;
   }
 
@@ -482,6 +487,11 @@ const server = http.createServer((req, res) => {
       let backend;
       try {
         backend = new URL(BACKEND_URL);
+        const requestHost = String(req.headers.host || '').split(':')[0].toLowerCase();
+        if (backend.hostname.toLowerCase() === requestHost) {
+          console.error(`[API Proxy] BACKEND_URL points back to the frontend (${requestHost}); using safe backend fallback.`);
+          backend = new URL(DEFAULT_BACKEND_URL);
+        }
       } catch (error) {
         res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ success: false, message: 'Invalid BACKEND_URL configuration' }));
