@@ -4,8 +4,8 @@
   "description": "MBEST - Learning Management System Local Development",
   "main": "dev-server.js",
   "scripts": {
-    "dev": "node dev-server.js",
-    "start": "node dev-server.js --port 3000",
+    "dev": "node api.js && node dev-server.js",
+    "start": "node api.js && node dev-server.js --port 3000",
     "serve": "node dev-server.js"
   },
   "keywords": [
