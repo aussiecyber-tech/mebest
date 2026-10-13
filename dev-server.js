@@ -11,7 +11,7 @@ const ROOT_DIR = path.resolve(__dirname);
 const DEFAULT_BACKEND_URL = 'https://mbest-backend.up.railway.app';
 const BACKEND_URL = process.env.BACKEND_URL || DEFAULT_BACKEND_URL;
 const ENABLE_MOCK_API = process.env.ENABLE_MOCK_API === 'true';
-const ENABLE_DEV_BRIDGE = process.env.ENABLE_DEV_BRIDGE === 'true';
+const ENABLE_DEV_BRIDGE = process.env.ENABLE_DEV_BRIDGE === 'true' && process.env.NODE_ENV !== 'production';
 
 // MIME types dictionary
 const MIME_TYPES = {

@@ -14,7 +14,5 @@
   ],
   "author": "MBEST Team",
   "license": "ISC",
-  "dependencies": {
-    "puppeteer-core": "^25.10.0"
-  }
+  "dependencies": {}
 }
